@@ -29,13 +29,13 @@ public class Command {
 		}
 	}
 	
-	public String arg2() throws Exception {
+	public int arg2() throws Exception {
 		switch(commandType()) {
 		case C_PUSH:
 		case C_POP:
 		case C_FUNCTION:
 		case C_CALL:
-			return commandTokens[2];
+			return Integer.parseInt(commandTokens[2]);
 		default:
 			throw new Exception("Can only get second argument of C_PUSH, C_POP, C_FUNCTION, or C_CALL commands.");
 		}
@@ -59,21 +59,15 @@ public class Command {
 	
 	private String translatePush(StringBuilder machineCode) throws Exception {
 
-		if (arg1().equals("constant")) {
-			machineCode.append("@" + arg2() + "\n");
-			machineCode.append("D=A\n");
-		} else {
-			machineCode.append("@" + register.get(arg1()) + "\n");
-			machineCode.append("D=M\n");
-			machineCode.append("@" + arg2() + "\n");
-			machineCode.append("A=D+A\n");
-			machineCode.append("D=M\n");
-		}
-		machineCode.append("@SP\n");
-		machineCode.append("A=M\n");
-		machineCode.append("M=D\n");
+		String address = Integer.toString(register.get(arg1()) + arg2());
+		
+		machineCode.append("@" + address + "\n");
+		// need to decide between A and M when using a constant vs an address
+		machineCode.append("D=" + (arg1().equals("constant") ? "A" : "M") + "\n");
 		machineCode.append("@SP\n");
 		machineCode.append("M=M+1\n");
+		machineCode.append("A=M-1\n");
+		machineCode.append("M=D\n");
 		
 		return machineCode.toString();
 	}
@@ -82,40 +76,26 @@ public class Command {
 		
 		if (arg1().equals("constant")) throw new Exception("Cannot pop to constant");
 		
+		String address = Integer.toString(register.get(arg1()) + arg2());
+		
 		machineCode.append("@SP\n");
 		machineCode.append("M=M-1\n");
 		machineCode.append("A=M\n");
 		machineCode.append("D=M\n");
-		machineCode.append("@R13\n");
+		machineCode.append("@" + address + "\n");
 		machineCode.append("M=D\n");
-		machineCode.append("@" + register.get(arg1()) + "\n");
-		machineCode.append("D=M\n");
-		machineCode.append("@" + arg2() + "\n");
-		machineCode.append("D=D+A\n");
-		machineCode.append("@R14\n");
-		machineCode.append("M=D\n");
-		machineCode.append("@R13\n");
-		machineCode.append("D=M\n");
-		machineCode.append("@R14\n");
-		machineCode.append("A=M\n");
-		machineCode.append("M=D\n");
-		
+
 		return machineCode.toString();
 	}
 	
 	private String translateArithmetic(StringBuilder machineCode) throws Exception {
 		
 		machineCode.append("@SP\n");
-		machineCode.append("M=M-1\n");
-		machineCode.append("A=M\n");
-		machineCode.append("D=M\n");
+		machineCode.append("AMD=M-1\n");
 		machineCode.append("@SP\n");
-		machineCode.append("M=M-1\n");
-		machineCode.append("A=M\n");
-		machineCode.append("D=M" + (arg1().equals("add") ? "+" : "-") + "D\n");
-		machineCode.append("@SP\n");
-		machineCode.append("A=M\n");
-		machineCode.append("M=D\n");
+		machineCode.append("AM=M-1\n");
+		// need to decide whether to add or subtract
+		machineCode.append("M=M" + (arg1().equals("add") ? "+" : "-") + "D\n");
 		machineCode.append("@SP\n");
 		machineCode.append("M=M+1\n");
 		
@@ -146,12 +126,13 @@ public class Command {
 		put("//", CommandType.COMMENT);
 	}};
 	
-	private HashMap<String, String> register = new HashMap<String, String>() {{
-		put("local", "LCL");
-		put("this", "THIS");
-		put("that", "THAT");
-		put("argument", "ARG");
-		put("temp", "R15");
+	private HashMap<String, Integer> register = new HashMap<String, Integer>() {{
+		put("local", 300);
+		put("argument", 400);
+		put("this", 3000);
+		put("that", 3010);
+		put("temp", 5);
+		put("constant", 0);
 	}};
 	
 	private String[] commandTokens;
