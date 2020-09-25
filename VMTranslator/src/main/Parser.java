@@ -7,6 +7,7 @@ import java.io.IOException;
 
 public class Parser {
 	public Parser(File file) throws IOException {
+		this.file = file;
 		br = new BufferedReader(new FileReader(file));
 	}
 		
@@ -18,7 +19,7 @@ public class Parser {
 		if (temp.isEmpty() || temp.trim().startsWith("//"))
 			 return hasMoreCommands();
 
-		currentCommand = new Command(temp);
+		currentCommand = new Command(temp, file);
 		return !(currentCommand==null || currentCommand.isEmpty());
 	}
 	
@@ -28,4 +29,5 @@ public class Parser {
 		
 	private BufferedReader br;
 	private Command currentCommand;
+	private File file;
 }

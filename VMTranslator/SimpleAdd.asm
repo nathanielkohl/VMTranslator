@@ -2,29 +2,22 @@
 @7
 D=A
 @SP
-A=M
-M=D
-@SP
 M=M+1
+A=M-1
+M=D
 // push constant 8
 @8
 D=A
 @SP
-A=M
-M=D
-@SP
 M=M+1
+A=M-1
+M=D
 // add
 @SP
-M=M-1
-A=M
+AM=M-1
 D=M
 @SP
-M=M-1
-A=M
-D=M+D
-@SP
-A=M
-M=D
+AM=M-1
+M=M+D
 @SP
 M=M+1
