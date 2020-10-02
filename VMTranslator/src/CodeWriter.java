@@ -1,4 +1,4 @@
-package main;
+
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -7,14 +7,10 @@ import java.io.IOException;
 
 public class CodeWriter {
 	public CodeWriter(File infile) throws IOException {
+		
 		String filename = infile.getName().split("\\.")[0] + ".asm";
-		File outfile = new File(filename); 
+		File outfile = new File(infile.getAbsoluteFile().getParent() + File.separator + filename); 
 		bw = new BufferedWriter(new FileWriter(outfile));
-//		bw.write("// set the temp space pointer\n");
-//		bw.write("@5\n");
-//		bw.write("D=A\n");
-//		bw.write("@R15\n");
-//		bw.write("M=D\n");
 	}
 	
 	public void writeCommand(String command) throws IOException {
