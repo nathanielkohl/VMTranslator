@@ -10,9 +10,8 @@ public class CodeWriter {
 		String filename = infile.getName().split("\\.")[0] + ".asm";
 		File outfile;
 		
-		if (infile.getName().contains(".asm")) {
+		if (infile.getName().contains(".vm")) {
 			outfile = new File(infile.getAbsoluteFile().getParent() + File.separator + filename); 
-	
 		} else {
 			outfile = new File(infile.getAbsoluteFile().getParent() + File.separator + infile.getName() + File.separator + filename);
 		}
