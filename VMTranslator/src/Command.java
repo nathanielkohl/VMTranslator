@@ -65,7 +65,25 @@ public class Command {
 
 		} else if ("pop".contains(commandTokens[0])) {
 			return translatePop(command);
+			
+		} else if ("call".contains(commandTokens[0])) {
+			return translateCall(command);
+			
+		} else if ("function".contains(commandTokens[0])) {
+			return translateFunction(command);
 		
+		} else if ("return".contains(commandTokens[0])) {
+			return translateReturn(command);
+			
+		} else if ("label".contains(commandTokens[0])) {
+			return translateLabel(command);
+			
+		} else if ("goto".contains(commandTokens[0])) {
+			return translateGoto(command);
+			
+		} else if ("if-goto".contains(commandTokens[0])) {
+			return translateIf(command);
+			
 		} else {
 			throw new Exception("Following command preface not able to be translated: " + arg1());
 		}
@@ -166,7 +184,141 @@ public class Command {
 		return sb.toString();
 	}
 	
+	private String translateCall(StringBuilder sb) throws Exception {
+		String functionName = arg1();
+		return translateCall(sb, functionName);
+	}
+	
+	private String translateCall(StringBuilder sb, String functionName) throws Exception {
+		writeCall(sb, functionName);
+		
+		return sb.toString();
+	}
+	
+	private void writeCall(StringBuilder sb, String functionName) throws Exception {
+		String returnAddress = "return" + labelNum++;
+		int nArgs = arg2();
+		
+		// push return address
+		sb.append("@" + returnAddress + "\n");
+		sb.append("D=A\n");
+		sb.append("@SP\n");
+		sb.append("M=M+1\n");
+		sb.append("A=M-1\n");
+		sb.append("M=D\n");
+		
+		// push LCL
+		writePushContents(sb, "LCL");
+		// push ARG
+		writePushContents(sb, "ARG");
+		// push THIS
+		writePushContents(sb, "THIS");
+		// push THAT
+		writePushContents(sb, "THAT");
+		
+		// ARG = SP-n-5
+		sb.append("@SP\n");
+		sb.append("D=M\n");
+		sb.append("@" + (nArgs+5) + "\n");
+		sb.append("D=D-A\n");
+		sb.append("@ARG\n");
+		sb.append("M=D\n");
+		
+		// LCL = SP
+		sb.append("@SP\n");
+		sb.append("D=M\n");
+		sb.append("@LCL\n");
+		sb.append("M=D\n");
+		
+		// goto function
+		writeGoto(sb, functionName);
 
+		// (return address)
+		sb.append("(" + returnAddress + ")\n");
+	}
+	
+	private void writeFunction(StringBuilder sb) throws Exception {
+		String functionName = arg1();
+		int localVars = arg2();
+		
+		sb.append("(" + functionName + ")\n");
+		
+		for (int i = 0; i < localVars; i++) {
+			writePushVal(sb, "0");
+		}
+	}
+	
+	private String translateFunction(StringBuilder sb) throws Exception {
+		writeFunction(sb);
+		return sb.toString();
+	}
+	
+	private void writePushVal(StringBuilder sb, String value) throws Exception {
+		sb.append("@" + value + "\n");
+		sb.append("D=A\n");
+		sb.append("@SP\n");
+		sb.append("M=M+1\n");
+		sb.append("A=M-1\n");
+		sb.append("M=D\n");
+	}
+	
+	private String translateReturn(StringBuilder sb) throws Exception {
+		writeReturn(sb);
+		return sb.toString();
+	}
+
+	private void restorePointer(StringBuilder sb, int offset, String pointer) {
+		sb.append("@" + offset + "\n");
+		sb.append("D=A\n");
+		sb.append("@R13\n");
+		sb.append("A=M-D\n");
+		sb.append("D=M\n");
+		sb.append("@" + pointer + "\n");
+		sb.append("M=D\n");
+	}
+	
+	private void writeReturn(StringBuilder sb) {
+		// FRAME = LCL
+		sb.append("@LCL\n");
+		sb.append("D=M\n");
+		sb.append("@R13\n");
+		sb.append("M=D\n");
+		
+		// RET = *(FRAME-5)
+		sb.append("@5\n");
+		sb.append("A=D-A\n");
+		sb.append("D=M\n");
+		sb.append("@R14\n");
+		sb.append("M=D\n");
+		
+		// *ARG = pop()
+		sb.append("@SP\n");
+		sb.append("AM=M-1\n");
+		sb.append("D=M\n");
+		sb.append("@ARG\n");
+		sb.append("A=M\n");
+		sb.append("M=D\n");
+		
+		// SP = ARG + 1
+		sb.append("@ARG\n");
+		sb.append("D=M+1\n");
+		sb.append("@SP\n");
+		sb.append("M=D\n");
+		
+		// THAT = *(FRAME-1)
+		restorePointer(sb, 1, "THAT");
+		// THIS = *(FRAME-2)
+		restorePointer(sb, 2, "THIS");
+		// ARG = *(FRAME-3)
+		restorePointer(sb, 3, "ARG");
+		// LCL = *(FRAME-4)
+		restorePointer(sb, 4, "LCL");
+		
+		// goto RET
+		sb.append("@R14\n");
+		sb.append("A=M\n");
+		sb.append("0;JMP\n");
+	}
 	
 	public boolean isEmpty() {
 		return commandTokens.length == 0;
@@ -175,10 +327,6 @@ public class Command {
 	private void tokenize() {
 		command = command.trim();
 		commandTokens = command.split("\\s");
-	}
-	
-	private String getPointer() throws Exception {
-		return arg2() == 0 ? "THIS" : "THAT";
 	}
 	
 	private void getAddress(StringBuilder sb) throws Exception {
@@ -210,6 +358,61 @@ public class Command {
 		}
 	}
 	
+	private String translateLabel(StringBuilder sb) throws Exception {
+		writeLabel(sb);
+		return sb.toString();
+	}
+	
+	private String writeLabel(StringBuilder sb) throws Exception{
+		String label = arg1();
+		
+		sb.append("(" + label + ")\n");
+		
+		return sb.toString();
+	}
+	
+	private String translateGoto(StringBuilder sb) throws Exception {
+		String label = arg1();
+		return translateGoto(sb, label);
+	}
+	
+	private String translateGoto(StringBuilder sb, String label) throws Exception {
+		writeGoto(sb, label);
+		return sb.toString();
+	}
+	
+	private void writeGoto(StringBuilder sb, String label) throws Exception {
+		sb.append("@" + label + "\n");
+		sb.append("0;JMP\n");
+	}
+	
+	private String translateIf(StringBuilder sb) throws Exception {
+		writeIf(sb);
+		return sb.toString();
+	}
+	
+	private String writeIf(StringBuilder sb) throws Exception {
+		String label = arg1();
+		
+		sb.append("@SP\n");
+		sb.append("M=M-1\n");
+		sb.append("A=M\n");
+		sb.append("D=M\n");
+		sb.append("@" + label + "\n");
+		sb.append("D;JNE\n");
+		
+		return sb.toString();
+	}
+	
+	private void writePushContents(StringBuilder sb, String target) throws Exception {
+		sb.append("@" + target + "\n");
+		sb.append("D=M\n");
+		sb.append("@SP\n");
+		sb.append("M=M+1\n");
+		sb.append("A=M-1\n");
+		sb.append("M=D\n");
+	}
+	
 	private HashMap<String, Object> symbols = new HashMap<String, Object>() {{
 		put("add", "+");
 		put("sub", "-");
@@ -234,6 +437,11 @@ public class Command {
 		put("and", CommandType.C_IF);
 		put("or", CommandType.C_IF);
 		put("not", CommandType.C_IF);
+		put("label", CommandType.C_LABEL);
+		put("goto", CommandType.C_GOTO);
+		put("if-goto", CommandType.C_IFGOTO);
+		put("function", CommandType.C_FUNCTION);
+		put("call", CommandType.C_CALL);
 		put("//", CommandType.COMMENT);
 	}};
 	
