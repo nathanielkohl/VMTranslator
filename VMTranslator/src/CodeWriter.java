@@ -7,9 +7,15 @@ import java.io.IOException;
 
 public class CodeWriter {
 	public CodeWriter(File infile) throws IOException {
-		
 		String filename = infile.getName().split("\\.")[0] + ".asm";
-		File outfile = new File(infile.getAbsoluteFile().getParent() + File.separator + filename); 
+		File outfile;
+		
+		if (infile.getName().contains(".asm")) {
+			outfile = new File(infile.getAbsoluteFile().getParent() + File.separator + filename); 
+	
+		} else {
+			outfile = new File(infile.getAbsoluteFile().getParent() + File.separator + infile.getName() + File.separator + filename);
+		}
 		bw = new BufferedWriter(new FileWriter(outfile));
 	}
 	
